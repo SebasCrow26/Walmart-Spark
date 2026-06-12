@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lista de compras</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: #e5e5ea;
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .screen { display: none; flex-direction: column; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* HEADER */
+  .header {
+    background: #2d6fe8;
+    padding: 18px 16px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    color: white; flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .back-btn { font-size: 26px; cursor: pointer; color: white; line-height: 1; margin-right: 2px; }
+  .header-title { font-size: 22px; font-weight: 600; letter-spacing: -0.2px; }
+  .header-icons { display: flex; align-items: center; gap: 14px; }
+  .icon-chat { width: 28px; height: 28px; cursor: pointer; }
+  .icon-chat svg { width: 28px; height: 28px; }
+  .icon-help {
+    width: 30px; height: 30px; border: 2px solid white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: white; cursor: pointer;
+  }
+
+  /* TABS */
+  .tabs {
+    background: white;
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #dddde0;
+    flex-shrink: 0;
+  }
+  .tab {
+    text-align: center; padding: 15px 0 12px;
+    font-size: 15.5px; color: #a0a0a8; cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+  .tab.active { color: #1a1a1e; font-weight: 500; border-bottom-color: #2d6fe8; }
+
+  /* LIST SCROLL */
+  .list-scroll {
+    flex: 1; overflow-y: scroll;
+    padding: 20px 10px 110px;
+    display: flex; flex-direction: column; gap: 24px;
+    background: #e5e5ea;
+    scrollbar-width: thin; scrollbar-color: #c8c8cc transparent;
+  }
+  .list-scroll::-webkit-scrollbar { width: 4px; }
+  .list-scroll::-webkit-scrollbar-thumb { background: #c8c8cc; border-radius: 2px; }
+
+  /* PRODUCT CARD */
+  .product-row {
+    background: white; border-radius: 8px;
+    padding: 26px 18px 26px 16px;
+    min-height: 160px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    position: relative;
+    transition: opacity .12s;
+  }
+  .product-row:active { opacity: 0.72; }
+  .product-row.done { opacity: 0.42; }
+
+  .prod-img-box {
+    width: 110px; height: 110px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #f2f2f7; border-radius: 8px; overflow: hidden;
+    align-self: center;
+  }
+  .prod-img-box .prod-emoji { font-size: 52px; }
+
+  .prod-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Perishable tag */
+  .tag-perecedero {
+    display: inline-block;
+    background: #dbeafe; color: #2d6fe8;
+    font-size: 12px; font-weight: 500;
+    padding: 3px 9px; border-radius: 5px;
+    margin-bottom: 2px;
+    align-self: flex-start;
+  }
+
+  .prod-name { font-size: 16px; font-weight: 400; color: #1a1a1e; line-height: 1.35; }
+
+  .prod-location {
+    font-size: 14px; color: #8e8e93;
+    display: flex; align-items: center; flex-wrap: wrap;
+  }
+  .loc-word { color: #8e8e93; }
+  .loc-val  { color: #2d6fe8; font-weight: 700; margin-left: 4px; }
+  .loc-sep  { color: #c8c8cc; margin: 0 8px; font-size: 17px; font-weight: 300; line-height: 1; }
+
+  .prod-bottom {
+    display: flex; justify-content: space-between; align-items: center; margin-top: 2px;
+  }
+  .prod-price { font-size: 15.5px; font-weight: 400; color: #1a1a1e; }
+  .prod-qty   { font-size: 14px; color: #a0a0a8; }
+  .prod-qty b { color: #1a1a1e; font-weight: 500; }
+
+  .check-badge {
+    position: absolute; top: 12px; right: 12px;
+    width: 22px; height: 22px; background: #34c759; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 13px; font-weight: 700;
+  }
+
+  /* BOTTOM BAR LIST */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: white; padding: 10px 16px 32px;
+    border-top: 1px solid #dddde0;
+  }
+  .resume-btn {
+    width: 100%; background: #1a3a7a; color: white; border: none;
+    border-radius: 30px; padding: 17px;
+    font-size: 15px; font-weight: 700; letter-spacing: 1.2px;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* ═══════════════════════════════
+     SCREEN 2 — BUSCAR ARTÍCULO
+  ═══════════════════════════════ */
+  .delivery-bar {
+    background: white; padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #e0e0e5; flex-shrink: 0;
+  }
+  .delivery-time { color: #8e8e93; font-size: 14px; }
+  .progress-section { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .progress-label { font-size: 13px; font-weight: 500; color: #1a1a1e; }
+  .progress-bar { width: 130px; height: 5px; background: #e0e0e5; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #2d6fe8; border-radius: 3px; transition: width .3s; }
+
+  /* Map peek area */
+  .map-peek {
+    height: 80px; background: #eef2f8;
+    overflow: hidden; position: relative; flex-shrink: 0;
+    border-bottom: 1px solid #dddde0;
+  }
+  .map-peek-inner {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-grid {
+    width: 100%; height: 100%; position: relative; overflow: hidden;
+  }
+  .map-grid::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(#d0d8e8 1px, transparent 1px),
+      linear-gradient(90deg, #d0d8e8 1px, transparent 1px);
+    background-size: 30px 30px;
+    opacity: 0.5;
+  }
+  .map-aisle {
+    position: absolute; background: white;
+    border: 1px solid #c8d0e0; border-radius: 2px;
+  }
+  .map-pin {
+    position: absolute; width: 32px; height: 32px;
+    background: #2d6fe8; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 14px;
+    box-shadow: 0 2px 6px rgba(45,111,232,0.4);
+    z-index: 2;
+  }
+  .add-float-wrap {
+    position: absolute; top: 10px; right: 14px; z-index: 3;
+  }
+  .add-float {
+    width: 38px; height: 38px; background: white;
+    border-radius: 8px; border: 1px solid #e0e0e5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: #374151; cursor: pointer;
+  }
+
+  .detail-body { flex: 1; overflow-y: auto; background: #eaeaef; padding-bottom: 100px; }
+
+  .bottom-sheet {
+    background: #f2f2f7; border-radius: 18px 18px 0 0;
+    position: relative; margin-top: 0;
+  }
+  .sheet-handle {
+    width: 38px; height: 4px; background: #c8c8cc;
+    border-radius: 2px; margin: 12px auto 0;
+  }
+  .sheet-toprow {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px 10px; background: #f2f2f7;
+  }
+  .map-link { font-size: 14.5px; color: #374151; cursor: pointer; }
+  .flash-pill {
+    display: flex; align-items: center; gap: 6px;
+    border: 1.5px solid #c8c8cc; border-radius: 20px;
+    padding: 7px 16px; font-size: 14px; font-weight: 500;
+    color: #374151; cursor: pointer; background: white;
+  }
+
+  .loc-card {
+    margin: 0 14px 12px; background: white;
+    border: 1px solid #e0e0e5; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .loc-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    text-align: center; border-bottom: 1px solid #e5e7eb;
+    padding: 13px 0 10px;
+  }
+  .lc { display: flex; flex-direction: column; gap: 3px; }
+  .lc:not(:last-child) { border-right: 1px solid #e5e7eb; }
+  .lc-label { font-size: 13px; color: #8e8e93; }
+  .lc-val { font-size: 20px; font-weight: 700; color: #1a1a1e; }
+
+  .prod-detail { padding: 16px; position: relative; }
+  .prod-badge {
+    position: absolute; top: 16px; left: 16px;
+    width: 38px; height: 38px; background: #67e8f9;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: #0e7490; z-index: 2;
+  }
+  .prod-img-center { display: flex; justify-content: center; margin-bottom: 16px; }
+  .prod-img-large {
+    width: 160px; height: 160px;
+    background: #f5f5f7; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 70px;
+  }
+  .d-qty  { font-size: 18px; font-weight: 700; color: #1a1a1e; margin-bottom: 6px; }
+  .d-name { font-size: 15px; color: #374151; line-height: 1.42; margin-bottom: 14px; }
+  .d-meta {
+    display: flex; justify-content: space-between;
+    padding-top: 12px; border-top: 1px solid #e5e7eb;
+    font-size: 14px; color: #8e8e93;
+  }
+  .d-meta span { color: #1a1a1e; font-weight: 500; }
+
+  .bottom-bar-detail {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    background: white; border-top: 1px solid #e0e0e5;
+    padding: 11px 14px 30px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .more-btn {
+    width: 46px; height: 46px; background: #f0f0f5; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: #6b7280; cursor: pointer; flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+  .scan-btn {
+    flex: 1; background: #1a3a7a; color: white; border: none;
+    border-radius: 14px; padding: 15px 18px;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.7px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-list">
+  <div class="header">
+    <span class="header-title">Lista de compras</span>
+    <div class="header-icons">
+      <div class="icon-chat">
+        <svg viewBox="0 0 28 28" fill="none">
+          <rect x="3" y="3" width="22" height="17" rx="4" stroke="white" stroke-width="2"/>
+          <path d="M8 24 L12 20 H24" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+          <line x1="8" y1="9.5" x2="20" y2="9.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="icon-help">?</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-restante" onclick="switchTab('restante')">Restante</div>
+    <div class="tab" id="tab-completo" onclick="switchTab('completo')">Completo</div>
+  </div>
+
+  <div class="list-scroll" id="list-restante">
+    <div id="rows-restante" style="display:flex;flex-direction:column;gap:24px;"></div>
+  </div>
+
+  <div class="list-scroll" id="list-completo" style="display:none;">
+    <div id="rows-completo" style="display:flex;flex-direction:column;gap:24px;">
+      <p style="text-align:center;color:#a0a0a8;margin-top:52px;font-size:14px;">No hay artículos completados aún.</p>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="resume-btn">REANUDAR COMPRAS</button>
+  </div>
+</div>
+
+
+<div class="screen" id="screen-detail">
+  <div class="header">
+    <div class="header-left">
+      <span class="back-btn" onclick="goBack()">&#8592;</span>
+      <span class="header-title">Buscar artículo</span>
+    </div>
+    <div class="header-icons">
+      <div class="icon-chat">
+        <svg viewBox="0 0 28 28" fill="none">
+          <rect x="3" y="3" width="22" height="17" rx="4" stroke="white" stroke-width="2"/>
+          <path d="M8 24 L12 20 H24" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+          <line x1="8" y1="9.5" x2="20" y2="9.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="icon-help">?</div>
+    </div>
+  </div>
+
+  <div class="delivery-bar">
+    <span class="delivery-time">Entrega a la(s) 6:36 PM</span>
+    <div class="progress-section">
+      <span class="progress-label" id="d-remaining">9 artículos restantes</span>
+      <div class="progress-bar"><div class="progress-fill" id="d-bar" style="width:70%"></div></div>
+    </div>
+  </div>
+
+  <div class="map-peek">
+    <div class="map-grid">
+      <div class="map-aisle" style="left:20px;top:10px;width:60px;height:60px;"></div>
+      <div class="map-aisle" style="left:100px;top:10px;width:80px;height:28px;"></div>
+      <div class="map-aisle" style="left:200px;top:10px;width:60px;height:60px;"></div>
+      <div class="map-aisle" style="left:300px;top:10px;width:80px;height:28px;"></div>
+      <div class="map-aisle" style="left:100px;top:45px;width:80px;height:28px;"></div>
+      <div class="map-aisle" style="left:300px;top:45px;width:80px;height:28px;"></div>
+      <div class="map-pin" style="left:170px;top:22px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+    </div>
+    <div class="add-float-wrap">
+      <div class="add-float">+</div>
+    </div>
+  </div>
+
+  <div class="detail-body">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-toprow">
+        <span class="map-link">Mostrar mapa</span>
+        <div class="flash-pill">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <path d="M8 1v3M8 12v3M1 8h3M12 8h3M3.05 3.05l2.12 2.12M10.83 10.83l2.12 2.12M12.95 3.05l-2.12 2.12M5.17 10.83l-2.12 2.12" stroke="#374151" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+          Flash
+        </div>
+      </div>
+
+      <div class="loc-card">
+        <div class="loc-row">
+          <div class="lc"><span class="lc-label">Pasillo</span><span class="lc-val" id="d-pasillo">K7</span></div>
+          <div class="lc"><span class="lc-label">Sección</span><span class="lc-val" id="d-seccion">5</span></div>
+          <div class="lc"><span class="lc-label">Modular</span><span class="lc-val" id="d-modular">6</span></div>
+        </div>
+        <div class="prod-detail">
+          <div class="prod-badge" id="d-badge">B</div>
+          <div class="prod-img-center">
+            <div class="prod-img-large" id="d-emoji">🔌</div>
+          </div>
+          <div class="d-qty" id="d-qty">1 cantidad</div>
+          <div class="d-name" id="d-name">Nombre del producto</div>
+          <div class="d-meta">
+            <span>Precio &nbsp;<span id="d-price">$0</span></span>
+            <span>UPC &nbsp;<span id="d-upc">000000000000</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:120px"></div>
+    </div>
+  </div>
+
+  <div class="bottom-bar-detail">
+    <div class="more-btn">•••</div>
+    <button class="scan-btn" onclick="markDone()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+        <rect x="2" y="2" width="6" height="6" rx="1"/>
+        <rect x="16" y="2" width="6" height="6" rx="1"/>
+        <rect x="2" y="16" width="6" height="6" rx="1"/>
+        <line x1="11" y1="2" x2="11" y2="7"/>
+        <line x1="11" y1="10" x2="11" y2="12"/>
+        <line x1="15" y1="11" x2="22" y2="11"/>
+        <line x1="15" y1="15" x2="15" y2="22"/>
+        <line x1="19" y1="15" x2="19" y2="17"/>
+        <line x1="22" y1="19" x2="22" y2="22"/>
+        <line x1="19" y1="20" x2="22" y2="20"/>
+      </svg>
+      ESCANEAR ARTÍCULO
+    </button>
+  </div>
+</div>
+
+<script>
+const products = [
+  { name:"Crush Caffeine Free Orange Soda Pop, 12 Fl Oz, 12 Pack Cans",
+    pasillo:"A24", seccion:"7", modular:"3", price:"$6",    upc:"07800036001", qty:1, badge:"A", emoji:"🟠", perishable:false },
+  { name:"Crush Caffeine Free Grape Soda Pop, 12 Fl Oz, 12 Pack Cans",
+    pasillo:"A24", seccion:"7", modular:"3", price:"$6",    upc:"07800036002", qty:1, badge:"A", emoji:"🟣", perishable:false },
+  { name:"Great Value Dr Thunder Soda Pop, 12 Fl Oz, 12 Pack Cans",
+    pasillo:"A24", seccion:"7", modular:"4", price:"$4.74", upc:"07874236501", qty:1, badge:"A", emoji:"🔴", perishable:false },
+  { name:"Apple 240W USB-C Charge Cable (2m) Fast Charge For iPhone 17, 16, 15, iPad, AirPods, And More",
+    pasillo:"K7",  seccion:"5", modular:"6",  price:"$29.00",upc:"19594977535", qty:1, badge:"B", emoji:"🔌", perishable:false },
+  { name:"Apple 20W USB-C Power Adapter - iPhone 17, 16, 15, 14, 13 Charger With Fast Charging Capability, Wall Charger",
+    pasillo:"K7",  seccion:"5", modular:"14", price:"$19.00",upc:"19594953711", qty:1, badge:"B", emoji:"🔋", perishable:false },
+  { name:"Freshness Guaranteed Boneless, Skinless Chicken Breasts, 4.7-6.1 Lb Tray",
+    pasillo:"A36", seccion:"20",modular:"5",  price:"$2.57", upc:"02125900001", qty:1, badge:"C", emoji:"🍗", perishable:true  },
+  { name:"Sirloin Tender Steak, Choice Angus Beef, 3-4 Per Tray, Fresh, 0.6 - 1.62 Lb",
+    pasillo:"A36", seccion:"29",modular:"2",  price:"$15.94",upc:"02125900002", qty:1, badge:"C", emoji:"🥩", perishable:true  },
+  { name:"Lay's Classic Potato Chips, 8 oz Bag",
+    pasillo:"B3",  seccion:"2", modular:"1",  price:"$4.48", upc:"02840011350", qty:2, badge:"D", emoji:"🟡", perishable:false },
+  { name:"Pepsi Cola Soda Pop, 12 Fl Oz, 12 Pack Cans",
+    pasillo:"A24", seccion:"8", modular:"2",  price:"$7.98", upc:"01200000630", qty:1, badge:"A", emoji:"🔵", perishable:false },
+];
+
+let currentIdx = 0;
+const doneSet = new Set();
+
+function rowHTML(p, idx, done=false) {
+  const tag = p.perishable ? `<span class="tag-perecedero">Perecedero</span>` : '';
+  return `
+  <div class="product-row${done?' done':''}" onclick="${done?'void(0)':'openDetail('+idx+')'}">
+    <div class="prod-img-box"><span class="prod-emoji">${p.emoji}</span></div>
+    <div class="prod-info">
+      ${tag}
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-location">
+        <span class="loc-word">Pasillo</span><span class="loc-val">${p.pasillo}</span>
+        <span class="loc-sep">|</span>
+        <span class="loc-word">Sección</span><span class="loc-val">${p.seccion}</span>
+      </div>
+      <div class="prod-bottom">
+        <span class="prod-price">${p.price}</span>
+        <span class="prod-qty">cantidad <b>${p.qty}</b></span>
+      </div>
+    </div>
+    ${done ? '<div class="check-badge">✓</div>' : ''}
+  </div>`;
+}
+
+function renderRestante() {
+  let html = '';
+  products.forEach((p, i) => { html += rowHTML(p, i, doneSet.has(i)); });
+  document.getElementById('rows-restante').innerHTML = html;
+}
+
+function renderCompleto() {
+  if (doneSet.size === 0) {
+    document.getElementById('rows-completo').innerHTML =
+      '<p style="text-align:center;color:#a0a0a8;margin-top:52px;font-size:14px;">No hay artículos completados aún.</p>';
+    return;
+  }
+  let html = '';
+  doneSet.forEach(i => { html += rowHTML(products[i], i, true); });
+  document.getElementById('rows-completo').innerHTML = html;
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-restante').classList.toggle('active', tab==='restante');
+  document.getElementById('tab-completo').classList.toggle('active', tab==='completo');
+  document.getElementById('list-restante').style.display = tab==='restante' ? 'flex' : 'none';
+  document.getElementById('list-completo').style.display = tab==='completo' ? 'flex' : 'none';
+  if (tab==='completo') renderCompleto();
+}
+
+function openDetail(idx) {
+  currentIdx = idx;
+  const p = products[idx];
+  document.getElementById('d-pasillo').textContent  = p.pasillo;
+  document.getElementById('d-seccion').textContent  = p.seccion;
+  document.getElementById('d-modular').textContent  = p.modular;
+  document.getElementById('d-badge').textContent    = p.badge;
+  document.getElementById('d-emoji').textContent    = p.emoji;
+  document.getElementById('d-qty').textContent      = p.qty + ' cantidad';
+  document.getElementById('d-name').textContent     = p.name;
+  document.getElementById('d-price').textContent    = p.price;
+  document.getElementById('d-upc').textContent      = p.upc;
+
+  const rem = products.length - doneSet.size;
+  document.getElementById('d-remaining').textContent = rem + ' artículos restantes';
+  document.getElementById('d-bar').style.width =
+    Math.max(5, Math.round(doneSet.size/products.length*100)) + '%';
+
+  document.getElementById('screen-list').classList.remove('active');
+  document.getElementById('screen-detail').classList.add('active');
+}
+
+function goBack() {
+  document.getElementById('screen-detail').classList.remove('active');
+  document.getElementById('screen-list').classList.add('active');
+}
+
+function markDone() {
+  doneSet.add(currentIdx);
+  renderRestante();
+  goBack();
+}
+
+renderRestante();
+</script>
+</body>
+</html>
