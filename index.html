@@ -70,12 +70,7 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: 700; color: white; cursor: pointer;
   }
-  .admin-btn {
-    background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.6);
-    color: white; border-radius: 8px; padding: 5px 12px;
-    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
-  }
-  .admin-btn:active { background: rgba(255,255,255,0.35); }
+
 
   /* TABS */
   .tabs {
@@ -428,8 +423,7 @@
   <div class="header">
     <span class="header-title">Lista de compras</span>
     <div class="header-icons">
-      <button class="admin-btn" onclick="showAdmin()">Admin</button>
-      <div class="icon-help">?</div>
+      <div class="icon-help" id="help-btn" onclick="handleHelpTap()">?</div>
     </div>
   </div>
 
@@ -665,61 +659,98 @@
      SCREEN 4 — ESCÁNER
 ═══════════════════════════════ -->
 <div class="screen" id="screen-scanner">
-  <div class="header">
-    <div class="header-left">
-      <span class="back-btn" onclick="closeScanner()">&#8592;</span>
-      <span class="header-title">Escanear artículo</span>
-    </div>
-  </div>
-
   <div id="scanner-body" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden;">
     <!-- Video de la cámara -->
     <video id="scanner-video" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" playsinline muted></video>
 
-    <!-- Marco de escaneo -->
-    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
-      <div style="position:relative;width:280px;height:160px;">
-        <!-- Overlay oscuro arriba/abajo -->
-        <div style="position:fixed;inset:0;background:rgba(0,0,0,0.55);pointer-events:none;"></div>
-        <!-- Marco blanco con esquinas -->
-        <div id="scan-frame" style="position:relative;z-index:2;width:280px;height:160px;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);">
-          <!-- Esquinas -->
-          <div style="position:absolute;top:-2px;left:-2px;width:28px;height:28px;border-top:3px solid white;border-left:3px solid white;border-radius:4px 0 0 0;"></div>
-          <div style="position:absolute;top:-2px;right:-2px;width:28px;height:28px;border-top:3px solid white;border-right:3px solid white;border-radius:0 4px 0 0;"></div>
-          <div style="position:absolute;bottom:-2px;left:-2px;width:28px;height:28px;border-bottom:3px solid white;border-left:3px solid white;border-radius:0 0 0 4px;"></div>
-          <div style="position:absolute;bottom:-2px;right:-2px;width:28px;height:28px;border-bottom:3px solid white;border-right:3px solid white;border-radius:0 0 4px 0;"></div>
-          <!-- Línea de escaneo animada -->
-          <div id="scan-line" style="position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,#2d6fe8,transparent);border-radius:1px;animation:scanline 1.8s ease-in-out infinite;"></div>
-        </div>
-      </div>
+    <!-- Overlay oscuro lateral -->
+    <div style="position:absolute;inset:0;pointer-events:none;">
+      <!-- Arriba -->
+      <div style="position:absolute;top:0;left:0;right:0;height:calc(50% - 80px);background:rgba(0,0,0,0.6);"></div>
+      <!-- Abajo -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:calc(50% - 80px);background:rgba(0,0,0,0.6);"></div>
+      <!-- Izquierda -->
+      <div style="position:absolute;top:calc(50% - 80px);bottom:calc(50% - 80px);left:0;width:calc(50% - 140px);background:rgba(0,0,0,0.6);"></div>
+      <!-- Derecha -->
+      <div style="position:absolute;top:calc(50% - 80px);bottom:calc(50% - 80px);right:0;width:calc(50% - 140px);background:rgba(0,0,0,0.6);"></div>
     </div>
 
-    <!-- Texto instrucción -->
-    <div style="position:absolute;bottom:120px;left:0;right:0;text-align:center;z-index:10;">
-      <p id="scanner-hint" style="color:white;font-size:15px;font-weight:500;text-shadow:0 1px 4px rgba(0,0,0,0.8);">Apunta al código de barras del producto</p>
+    <!-- Marco de escaneo (esquinas) -->
+    <div id="scan-frame-wrap" style="position:absolute;width:280px;height:160px;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;">
+      <!-- Esquinas — blancas por defecto, verdes al escanear -->
+      <div class="corner tl" id="c-tl"></div>
+      <div class="corner tr" id="c-tr"></div>
+      <div class="corner bl" id="c-bl"></div>
+      <div class="corner br" id="c-br"></div>
+      <!-- Línea de escaneo animada -->
+      <div id="scan-line"></div>
+    </div>
+
+    <!-- Texto instrucción + nombre producto -->
+    <div style="position:absolute;top:calc(50% + 100px);left:0;right:0;text-align:center;z-index:10;padding:0 24px;">
+      <p id="scanner-hint" style="color:white;font-size:15px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,0.9);line-height:1.5;"></p>
+    </div>
+
+    <!-- Botón X arriba izquierda -->
+    <div onclick="closeScanner()" style="position:absolute;top:16px;left:16px;z-index:30;width:38px;height:38px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+
+    <!-- Título arriba centro -->
+    <div style="position:absolute;top:22px;left:0;right:0;text-align:center;z-index:10;pointer-events:none;">
+      <span style="color:white;font-size:16px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.8);">Escanear artículo</span>
     </div>
 
     <!-- Resultado overlay (éxito) -->
-    <div id="scan-success" style="display:none;position:absolute;inset:0;background:rgba(52,199,89,0.92);flex-direction:column;align-items:center;justify-content:center;z-index:20;">
-      <div style="font-size:72px;margin-bottom:16px;">✓</div>
-      <div style="color:white;font-size:22px;font-weight:700;margin-bottom:8px;">¡Escaneado!</div>
-      <div id="scan-success-name" style="color:rgba(255,255,255,0.9);font-size:15px;text-align:center;padding:0 32px;"></div>
+    <div id="scan-success" style="display:none;position:absolute;inset:0;background:rgba(30,30,30,0.88);flex-direction:column;align-items:center;justify-content:center;z-index:20;">
+      <div id="scan-check-wrap" style="width:90px;height:90px;background:#34c759;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:22px;transform:scale(0);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div style="color:white;font-size:24px;font-weight:700;margin-bottom:8px;letter-spacing:-0.3px;">¡Artículo encontrado!</div>
+      <div id="scan-success-name" style="color:rgba(255,255,255,0.75);font-size:15px;text-align:center;padding:0 40px;line-height:1.45;"></div>
     </div>
   </div>
 
-  <!-- Botón cancelar -->
+  <!-- Bottom bar -->
   <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(0,0,0,0.85);padding:14px 16px 36px;">
-    <button onclick="closeScanner()" style="width:100%;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.3);color:white;border-radius:14px;padding:15px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;">
+    <button onclick="closeScanner()" style="width:100%;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);color:white;border-radius:14px;padding:15px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;">
       Cancelar
     </button>
   </div>
 </div>
 
 <style>
+/* Esquinas del marco */
+.corner {
+  position: absolute;
+  width: 32px; height: 32px;
+  transition: border-color 0.2s;
+}
+.corner.tl { top: -2px; left: -2px;  border-top: 3px solid white; border-left: 3px solid white;  border-radius: 5px 0 0 0; }
+.corner.tr { top: -2px; right: -2px; border-top: 3px solid white; border-right: 3px solid white; border-radius: 0 5px 0 0; }
+.corner.bl { bottom: -2px; left: -2px;  border-bottom: 3px solid white; border-left: 3px solid white;  border-radius: 0 0 0 5px; }
+.corner.br { bottom: -2px; right: -2px; border-bottom: 3px solid white; border-right: 3px solid white; border-radius: 0 0 5px 0; }
+
+/* Verde al detectar */
+.corner.hit { border-color: #34c759 !important; }
+
+/* Línea de escaneo */
+#scan-line {
+  position: absolute; left: 0; right: 0; height: 2.5px;
+  background: linear-gradient(90deg, transparent 0%, #34c759 30%, #5fdd84 50%, #34c759 70%, transparent 100%);
+  border-radius: 2px;
+  animation: scanline 1.6s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(52,199,89,0.7);
+}
+
 @keyframes scanline {
-  0%   { top: 8px; opacity: 1; }
-  50%  { top: calc(100% - 10px); opacity: 1; }
-  100% { top: 8px; opacity: 1; }
+  0%   { top: 4px;  opacity: 0.9; }
+  50%  { top: calc(100% - 6px); opacity: 1; }
+  100% { top: 4px;  opacity: 0.9; }
 }
 </style>
 
@@ -728,6 +759,23 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  ACCESO ADMIN OCULTO — 5 taps rápidos en ?
+// ═══════════════════════════════════════════════════════
+let helpTapCount = 0;
+let helpTapTimer = null;
+
+function handleHelpTap() {
+  helpTapCount++;
+  clearTimeout(helpTapTimer);
+  if (helpTapCount >= 5) {
+    helpTapCount = 0;
+    showAdmin();
+    return;
+  }
+  helpTapTimer = setTimeout(() => { helpTapCount = 0; }, 1800);
+}
+
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
@@ -1103,10 +1151,18 @@ async function openScanner() {
   showScreen('screen-scanner');
   scannerActive = true;
 
-  // Ocultar overlay de éxito por si quedó visible
+  // Resetear estado visual
   const successEl = document.getElementById('scan-success');
   successEl.style.display = 'none';
-  document.getElementById('scanner-hint').textContent = 'Apunta al código de barras del producto';
+  document.getElementById('scan-check-wrap').style.transform = 'scale(0)';
+  // Mostrar nombre del producto que se debe escanear
+  const p = products[currentIdx];
+  document.getElementById('scanner-hint').textContent =
+    p ? `Escaneando: ${p.name}` : 'Centra el código de barras en el recuadro';
+  // Esquinas blancas
+  ['c-tl','c-tr','c-bl','c-br'].forEach(id => document.getElementById(id).classList.remove('hit'));
+  // Mostrar línea de escaneo
+  document.getElementById('scan-line').style.display = '';
 
   try {
     scannerCodeReader = new ZXing.BrowserMultiFormatReader();
@@ -1125,7 +1181,6 @@ async function openScanner() {
           const scannedUPC = result.getText();
           handleScanResult(scannedUPC);
         }
-        // Los errores de "no encontrado aún" son normales, los ignoramos
       }
     );
   } catch (e) {
@@ -1136,20 +1191,33 @@ async function openScanner() {
 
 function handleScanResult(scannedUPC) {
   if (!scannerActive) return;
-  scannerActive = false; // evitar múltiples lecturas
+  scannerActive = false;
 
   const p = products[currentIdx];
   const expectedUPC = p ? String(p.upc).replace(/\D/g, '') : '';
   const scannedClean = scannedUPC.replace(/\D/g, '');
 
-  // Siempre mostramos éxito — si el UPC coincide o no,
-  // el escaneo se asocia al producto actual
-  const successEl = document.getElementById('scan-success');
-  document.getElementById('scan-success-name').textContent =
-    p ? `"${p.name}"` : 'Producto escaneado';
-  successEl.style.display = 'flex';
+  // 1. Esquinas se ponen verdes (flash visual)
+  ['c-tl','c-tr','c-bl','c-br'].forEach(id => document.getElementById(id).classList.add('hit'));
 
-  // Si el UPC escaneado es diferente al guardado, actualizamos en Firestore
+  // 2. Ocultar línea de escaneo
+  document.getElementById('scan-line').style.display = 'none';
+
+  // 3. Pequeño delay antes del overlay de éxito (efecto más natural)
+  setTimeout(() => {
+    const successEl = document.getElementById('scan-success');
+    document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
+    successEl.style.display = 'flex';
+
+    // Animar el círculo con rebote
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
+      });
+    });
+  }, 180);
+
+  // Actualizar UPC si cambió
   if (p && expectedUPC !== scannedClean && scannedClean.length > 0) {
     const { updateDoc, doc } = window._fb;
     const db = window._db;
@@ -1158,14 +1226,14 @@ function handleScanResult(scannedUPC) {
     }
   }
 
-  // Esperar 1.5s, marcar como completado y volver a la lista
+  // 4. Esperar 1.8s, marcar completado y volver
   setTimeout(() => {
     stopScanner();
     doneSet.add(currentIdx);
     renderRestante();
     showScreen('screen-list');
     showToast('✓ Artículo completado');
-  }, 1500);
+  }, 1950);
 }
 
 function closeScanner() {
