@@ -672,7 +672,7 @@
     <div id="scanner-video-container" style="width:100%;height:100%;position:absolute;inset:0;"></div>
 
     <!-- Overlay oscuro lateral -->
-    <div style="position:absolute;inset:0;pointer-events:none;">
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:2;">
       <!-- Arriba -->
       <div style="position:absolute;top:0;left:0;right:0;height:calc(50% - 80px);background:rgba(0,0,0,0.6);"></div>
       <!-- Abajo -->
@@ -684,7 +684,7 @@
     </div>
 
     <!-- Marco de escaneo (esquinas) -->
-    <div id="scan-frame-wrap" style="position:absolute;width:280px;height:160px;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;">
+    <div id="scan-frame-wrap" style="position:absolute;width:280px;height:160px;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:3;">
       <!-- Esquinas — blancas por defecto, verdes al escanear -->
       <div class="corner tl" id="c-tl"></div>
       <div class="corner tr" id="c-tr"></div>
@@ -695,7 +695,7 @@
     </div>
 
     <!-- Texto instrucción + nombre producto -->
-    <div style="position:absolute;top:calc(50% + 100px);left:0;right:0;text-align:center;z-index:10;padding:0 24px;">
+    <div style="position:absolute;top:calc(50% + 100px);left:0;right:0;text-align:center;z-index:4;padding:0 24px;">
       <p id="scanner-hint" style="color:white;font-size:15px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,0.9);line-height:1.5;"></p>
     </div>
 
@@ -707,7 +707,7 @@
     </div>
 
     <!-- Título arriba centro -->
-    <div style="position:absolute;top:22px;left:0;right:0;text-align:center;z-index:10;pointer-events:none;">
+    <div style="position:absolute;top:22px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;">
       <span style="color:white;font-size:16px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.8);">Escanear artículo</span>
     </div>
 
@@ -733,12 +733,16 @@
 
 <style>
 /* Ocultar UI por defecto de Html5Qrcode */
+#scanner-video-container {
+  position: absolute !important; inset: 0 !important;
+  z-index: 1;
+}
 #scanner-video-container video {
   width: 100% !important; height: 100% !important;
-  object-fit: cover !important; position: absolute !important; inset: 0 !important;
+  object-fit: cover !important;
+  position: absolute !important; inset: 0 !important;
 }
-#scanner-video-container img { display: none !important; }
-#scanner-video-container > div:last-child { display: none !important; }
+#scanner-video-container > div { display: none !important; }
 
 /* Esquinas del marco */
 .corner {
