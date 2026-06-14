@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Lista de compras</title>
+
+<!-- ══════════════════════════════════════════════════
+     CLOUDINARY Upload Widget (imágenes, sin backend)
+═══════════════════════════════════════════════════ -->
+<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+
+<!-- ══════════════════════════════════════════════════
+     FIREBASE (solo Firestore — sin Storage)
+═══════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCBEjSCuEkhSTl1j5uCvcUz0m2G-Ex9DyU",
+    authDomain:        "proyecto-spark-8a06d.firebaseapp.com",
+    projectId:         "proyecto-spark-8a06d",
+    storageBucket:     "proyecto-spark-8a06d.firebasestorage.app",
+    messagingSenderId: "718516850095",
+    appId:             "1:718516850095:web:aae82d60db00583960f35a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  window._db = db;
+  window._fb = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot };
+
+  window.dispatchEvent(new Event("firebase-ready"));
+</script>
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -37,6 +69,12 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: 700; color: white; cursor: pointer;
   }
+  .admin-btn {
+    background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.6);
+    color: white; border-radius: 8px; padding: 5px 12px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .admin-btn:active { background: rgba(255,255,255,0.35); }
 
   /* TABS */
   .tabs {
@@ -84,18 +122,17 @@
     background: #f2f2f7; border-radius: 8px; overflow: hidden;
     align-self: center;
   }
+  .prod-img-box img { width: 110px; height: 110px; object-fit: cover; }
   .prod-img-box .prod-emoji { font-size: 52px; }
 
   .prod-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 
-  /* Perishable tag */
   .tag-perecedero {
     display: inline-block;
     background: #dbeafe; color: #2d6fe8;
     font-size: 12px; font-weight: 500;
     padding: 3px 9px; border-radius: 5px;
-    margin-bottom: 2px;
-    align-self: flex-start;
+    margin-bottom: 2px; align-self: flex-start;
   }
 
   .prod-name { font-size: 16px; font-weight: 400; color: #1a1a1e; line-height: 1.35; }
@@ -136,9 +173,7 @@
     cursor: pointer; font-family: inherit;
   }
 
-  /* ═══════════════════════════════
-     SCREEN 2 — BUSCAR ARTÍCULO
-  ═══════════════════════════════ */
+  /* SCREEN 2 — DETALLE */
   .delivery-bar {
     background: white; padding: 10px 16px;
     display: flex; align-items: center; justify-content: space-between;
@@ -150,43 +185,27 @@
   .progress-bar { width: 130px; height: 5px; background: #e0e0e5; border-radius: 3px; overflow: hidden; }
   .progress-fill { height: 100%; background: #2d6fe8; border-radius: 3px; transition: width .3s; }
 
-  /* Map peek area */
   .map-peek {
     height: 80px; background: #eef2f8;
     overflow: hidden; position: relative; flex-shrink: 0;
     border-bottom: 1px solid #dddde0;
   }
-  .map-peek-inner {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .map-grid {
-    width: 100%; height: 100%; position: relative; overflow: hidden;
-  }
+  .map-peek-inner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .map-grid { width: 100%; height: 100%; position: relative; overflow: hidden; }
   .map-grid::before {
-    content: '';
-    position: absolute; inset: 0;
-    background-image:
-      linear-gradient(#d0d8e8 1px, transparent 1px),
-      linear-gradient(90deg, #d0d8e8 1px, transparent 1px);
-    background-size: 30px 30px;
-    opacity: 0.5;
+    content: ''; position: absolute; inset: 0;
+    background-image: linear-gradient(#d0d8e8 1px, transparent 1px), linear-gradient(90deg, #d0d8e8 1px, transparent 1px);
+    background-size: 30px 30px; opacity: 0.5;
   }
-  .map-aisle {
-    position: absolute; background: white;
-    border: 1px solid #c8d0e0; border-radius: 2px;
-  }
+  .map-aisle { position: absolute; background: white; border: 1px solid #c8d0e0; border-radius: 2px; }
   .map-pin {
     position: absolute; width: 32px; height: 32px;
     background: #2d6fe8; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: white; font-size: 14px;
-    box-shadow: 0 2px 6px rgba(45,111,232,0.4);
-    z-index: 2;
+    box-shadow: 0 2px 6px rgba(45,111,232,0.4); z-index: 2;
   }
-  .add-float-wrap {
-    position: absolute; top: 10px; right: 14px; z-index: 3;
-  }
+  .add-float-wrap { position: absolute; top: 10px; right: 14px; z-index: 3; }
   .add-float {
     width: 38px; height: 38px; background: white;
     border-radius: 8px; border: 1px solid #e0e0e5;
@@ -196,15 +215,8 @@
   }
 
   .detail-body { flex: 1; overflow-y: auto; background: #eaeaef; padding-bottom: 100px; }
-
-  .bottom-sheet {
-    background: #f2f2f7; border-radius: 18px 18px 0 0;
-    position: relative; margin-top: 0;
-  }
-  .sheet-handle {
-    width: 38px; height: 4px; background: #c8c8cc;
-    border-radius: 2px; margin: 12px auto 0;
-  }
+  .bottom-sheet { background: #f2f2f7; border-radius: 18px 18px 0 0; position: relative; margin-top: 0; }
+  .sheet-handle { width: 38px; height: 4px; background: #c8c8cc; border-radius: 2px; margin: 12px auto 0; }
   .sheet-toprow {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px 10px; background: #f2f2f7;
@@ -244,8 +256,9 @@
     width: 160px; height: 160px;
     background: #f5f5f7; border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 70px;
+    font-size: 70px; overflow: hidden;
   }
+  .prod-img-large img { width: 160px; height: 160px; object-fit: cover; }
   .d-qty  { font-size: 18px; font-weight: 700; color: #1a1a1e; margin-bottom: 6px; }
   .d-name { font-size: 15px; color: #374151; line-height: 1.42; margin-bottom: 14px; }
   .d-meta {
@@ -275,22 +288,143 @@
     cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
     font-family: inherit;
   }
+
+  /* ═══════════════════════════════
+     SCREEN 3 — PANEL ADMIN
+  ═══════════════════════════════ */
+  #screen-admin { background: #f2f2f7; }
+
+  .admin-scroll {
+    flex: 1; overflow-y: auto; padding: 16px 14px 120px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .admin-section-title {
+    font-size: 13px; font-weight: 600; color: #8e8e93;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-bottom: 4px; padding-left: 4px;
+  }
+
+  /* Formulario nuevo producto */
+  .form-card {
+    background: white; border-radius: 12px;
+    padding: 18px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .form-row { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 13px; color: #6b7280; font-weight: 500; }
+  .form-input {
+    border: 1.5px solid #e0e0e5; border-radius: 8px;
+    padding: 11px 13px; font-size: 15px; font-family: inherit;
+    color: #1a1a1e; outline: none;
+    transition: border-color .15s;
+  }
+  .form-input:focus { border-color: #2d6fe8; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Upload imagen */
+  .img-upload-area {
+    border: 2px dashed #c8c8cc; border-radius: 10px;
+    padding: 20px; text-align: center; cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+  .img-upload-area:hover, .img-upload-area.drag { border-color: #2d6fe8; background: #eef4ff; }
+  .img-upload-area input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .img-preview {
+    width: 90px; height: 90px; border-radius: 8px;
+    object-fit: cover; margin: 0 auto 8px; display: block;
+  }
+  .img-upload-text { font-size: 14px; color: #8e8e93; }
+  .img-upload-hint { font-size: 12px; color: #b0b0b8; margin-top: 4px; }
+
+  /* Checkbox perecible */
+  .check-row {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  .check-row input[type=checkbox] { width: 18px; height: 18px; accent-color: #2d6fe8; cursor: pointer; }
+  .check-row span { font-size: 15px; color: #374151; }
+
+  /* Botón guardar */
+  .save-btn {
+    background: #2d6fe8; color: white; border: none;
+    border-radius: 12px; padding: 15px;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .save-btn:disabled { opacity: 0.5; cursor: default; }
+  .save-btn.loading::after {
+    content: ''; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Lista productos admin */
+  .admin-prod-card {
+    background: white; border-radius: 12px;
+    padding: 14px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .admin-prod-thumb {
+    width: 56px; height: 56px; border-radius: 8px;
+    background: #f2f2f7; overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+  }
+  .admin-prod-thumb img { width: 56px; height: 56px; object-fit: cover; }
+  .admin-prod-info { flex: 1; min-width: 0; }
+  .admin-prod-name { font-size: 14px; color: #1a1a1e; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .admin-prod-sub { font-size: 12px; color: #8e8e93; margin-top: 3px; }
+  .admin-prod-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn-edit {
+    padding: 7px 14px; border: 1.5px solid #2d6fe8; color: #2d6fe8;
+    border-radius: 8px; background: none; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-del {
+    padding: 7px 12px; border: 1.5px solid #ff3b30; color: #ff3b30;
+    border-radius: 8px; background: none; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1a1a1e; color: white; padding: 12px 22px;
+    border-radius: 22px; font-size: 14px; font-weight: 500;
+    opacity: 0; transition: opacity .25s, transform .25s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed; inset: 0; background: rgba(229,229,234,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 800; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .loading-overlay.show { opacity: 1; pointer-events: all; }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid #c8c8cc;
+    border-top-color: #2d6fe8; border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════════
+     SCREEN 1 — LISTA
+═══════════════════════════════ -->
 <div class="screen active" id="screen-list">
   <div class="header">
     <span class="header-title">Lista de compras</span>
     <div class="header-icons">
-      <div class="icon-chat">
-        <svg viewBox="0 0 28 28" fill="none">
-          <rect x="3" y="3" width="22" height="17" rx="4" stroke="white" stroke-width="2"/>
-          <path d="M8 24 L12 20 H24" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-          <line x1="8" y1="9.5" x2="20" y2="9.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </div>
+      <button class="admin-btn" onclick="showAdmin()">Admin</button>
       <div class="icon-help">?</div>
     </div>
   </div>
@@ -301,7 +435,9 @@
   </div>
 
   <div class="list-scroll" id="list-restante">
-    <div id="rows-restante" style="display:flex;flex-direction:column;gap:24px;"></div>
+    <div id="rows-restante" style="display:flex;flex-direction:column;gap:24px;">
+      <p style="text-align:center;color:#a0a0a8;margin-top:52px;font-size:14px;">Cargando productos…</p>
+    </div>
   </div>
 
   <div class="list-scroll" id="list-completo" style="display:none;">
@@ -316,6 +452,9 @@
 </div>
 
 
+<!-- ═══════════════════════════════
+     SCREEN 2 — DETALLE
+═══════════════════════════════ -->
 <div class="screen" id="screen-detail">
   <div class="header">
     <div class="header-left">
@@ -323,14 +462,6 @@
       <span class="header-title">Buscar artículo</span>
     </div>
     <div class="header-icons">
-      <div class="icon-chat">
-        <svg viewBox="0 0 28 28" fill="none">
-          <rect x="3" y="3" width="22" height="17" rx="4" stroke="white" stroke-width="2"/>
-          <path d="M8 24 L12 20 H24" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-          <line x1="8" y1="9.5" x2="20" y2="9.5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </div>
       <div class="icon-help">?</div>
     </div>
   </div>
@@ -338,8 +469,8 @@
   <div class="delivery-bar">
     <span class="delivery-time">Entrega a la(s) 6:36 PM</span>
     <div class="progress-section">
-      <span class="progress-label" id="d-remaining">9 artículos restantes</span>
-      <div class="progress-bar"><div class="progress-fill" id="d-bar" style="width:70%"></div></div>
+      <span class="progress-label" id="d-remaining">… artículos restantes</span>
+      <div class="progress-bar"><div class="progress-fill" id="d-bar" style="width:5%"></div></div>
     </div>
   </div>
 
@@ -378,14 +509,14 @@
 
       <div class="loc-card">
         <div class="loc-row">
-          <div class="lc"><span class="lc-label">Pasillo</span><span class="lc-val" id="d-pasillo">K7</span></div>
-          <div class="lc"><span class="lc-label">Sección</span><span class="lc-val" id="d-seccion">5</span></div>
-          <div class="lc"><span class="lc-label">Modular</span><span class="lc-val" id="d-modular">6</span></div>
+          <div class="lc"><span class="lc-label">Pasillo</span><span class="lc-val" id="d-pasillo">—</span></div>
+          <div class="lc"><span class="lc-label">Sección</span><span class="lc-val" id="d-seccion">—</span></div>
+          <div class="lc"><span class="lc-label">Modular</span><span class="lc-val" id="d-modular">—</span></div>
         </div>
         <div class="prod-detail">
-          <div class="prod-badge" id="d-badge">B</div>
+          <div class="prod-badge" id="d-badge">A</div>
           <div class="prod-img-center">
-            <div class="prod-img-large" id="d-emoji">🔌</div>
+            <div class="prod-img-large" id="d-img-wrap"><span id="d-emoji">🛒</span></div>
           </div>
           <div class="d-qty" id="d-qty">1 cantidad</div>
           <div class="d-name" id="d-name">Nombre del producto</div>
@@ -404,15 +535,11 @@
     <div class="more-btn">•••</div>
     <button class="scan-btn" onclick="markDone()">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
-        <rect x="2" y="2" width="6" height="6" rx="1"/>
-        <rect x="16" y="2" width="6" height="6" rx="1"/>
+        <rect x="2" y="2" width="6" height="6" rx="1"/><rect x="16" y="2" width="6" height="6" rx="1"/>
         <rect x="2" y="16" width="6" height="6" rx="1"/>
-        <line x1="11" y1="2" x2="11" y2="7"/>
-        <line x1="11" y1="10" x2="11" y2="12"/>
-        <line x1="15" y1="11" x2="22" y2="11"/>
-        <line x1="15" y1="15" x2="15" y2="22"/>
-        <line x1="19" y1="15" x2="19" y2="17"/>
-        <line x1="22" y1="19" x2="22" y2="22"/>
+        <line x1="11" y1="2" x2="11" y2="7"/><line x1="11" y1="10" x2="11" y2="12"/>
+        <line x1="15" y1="11" x2="22" y2="11"/><line x1="15" y1="15" x2="15" y2="22"/>
+        <line x1="19" y1="15" x2="19" y2="17"/><line x1="22" y1="19" x2="22" y2="22"/>
         <line x1="19" y1="20" x2="22" y2="20"/>
       </svg>
       ESCANEAR ARTÍCULO
@@ -420,36 +547,358 @@
   </div>
 </div>
 
-<script>
-const products = [
-  { name:"Crush Caffeine Free Orange Soda Pop, 12 Fl Oz, 12 Pack Cans",
-    pasillo:"A24", seccion:"7", modular:"3", price:"$6",    upc:"07800036001", qty:1, badge:"A", emoji:"🟠", perishable:false },
-  { name:"Crush Caffeine Free Grape Soda Pop, 12 Fl Oz, 12 Pack Cans",
-    pasillo:"A24", seccion:"7", modular:"3", price:"$6",    upc:"07800036002", qty:1, badge:"A", emoji:"🟣", perishable:false },
-  { name:"Great Value Dr Thunder Soda Pop, 12 Fl Oz, 12 Pack Cans",
-    pasillo:"A24", seccion:"7", modular:"4", price:"$4.74", upc:"07874236501", qty:1, badge:"A", emoji:"🔴", perishable:false },
-  { name:"Apple 240W USB-C Charge Cable (2m) Fast Charge For iPhone 17, 16, 15, iPad, AirPods, And More",
-    pasillo:"K7",  seccion:"5", modular:"6",  price:"$29.00",upc:"19594977535", qty:1, badge:"B", emoji:"🔌", perishable:false },
-  { name:"Apple 20W USB-C Power Adapter - iPhone 17, 16, 15, 14, 13 Charger With Fast Charging Capability, Wall Charger",
-    pasillo:"K7",  seccion:"5", modular:"14", price:"$19.00",upc:"19594953711", qty:1, badge:"B", emoji:"🔋", perishable:false },
-  { name:"Freshness Guaranteed Boneless, Skinless Chicken Breasts, 4.7-6.1 Lb Tray",
-    pasillo:"A36", seccion:"20",modular:"5",  price:"$2.57", upc:"02125900001", qty:1, badge:"C", emoji:"🍗", perishable:true  },
-  { name:"Sirloin Tender Steak, Choice Angus Beef, 3-4 Per Tray, Fresh, 0.6 - 1.62 Lb",
-    pasillo:"A36", seccion:"29",modular:"2",  price:"$15.94",upc:"02125900002", qty:1, badge:"C", emoji:"🥩", perishable:true  },
-  { name:"Lay's Classic Potato Chips, 8 oz Bag",
-    pasillo:"B3",  seccion:"2", modular:"1",  price:"$4.48", upc:"02840011350", qty:2, badge:"D", emoji:"🟡", perishable:false },
-  { name:"Pepsi Cola Soda Pop, 12 Fl Oz, 12 Pack Cans",
-    pasillo:"A24", seccion:"8", modular:"2",  price:"$7.98", upc:"01200000630", qty:1, badge:"A", emoji:"🔵", perishable:false },
-];
 
+<!-- ═══════════════════════════════
+     SCREEN 3 — ADMIN
+═══════════════════════════════ -->
+<div class="screen" id="screen-admin">
+  <div class="header">
+    <div class="header-left">
+      <span class="back-btn" onclick="showScreen('screen-list')">&#8592;</span>
+      <span class="header-title">Panel Admin</span>
+    </div>
+  </div>
+
+  <div class="admin-scroll">
+    <!-- Formulario -->
+    <p class="admin-section-title" id="form-mode-title">Nuevo producto</p>
+    <div class="form-card">
+
+      <!-- Imagen — Cloudinary Upload Widget -->
+      <div class="form-row">
+        <label class="form-label">Imagen del producto</label>
+        <div class="img-upload-area" id="upload-area" onclick="openCloudinaryWidget()">
+          <img id="img-preview" class="img-preview" src="" alt="" style="display:none">
+          <div id="upload-placeholder">
+            <div style="font-size:32px;margin-bottom:6px;">📷</div>
+            <div class="img-upload-text">Toca para subir imagen</div>
+            <div class="img-upload-hint">JPG, PNG, WEBP — optimizado con Cloudinary</div>
+          </div>
+        </div>
+        <!-- URL guardada internamente después del upload -->
+        <input type="hidden" id="cloudinary-url" value="">
+      </div>
+
+      <!-- Nombre -->
+      <div class="form-row">
+        <label class="form-label">Nombre del producto *</label>
+        <input class="form-input" id="f-name" type="text" placeholder="Ej: Pepsi Cola 12 Fl Oz, 12 Pack">
+      </div>
+
+      <!-- Emoji (fallback si no hay imagen) -->
+      <div class="form-row">
+        <label class="form-label">Emoji (si no hay imagen)</label>
+        <input class="form-input" id="f-emoji" type="text" placeholder="🛒" maxlength="4" style="font-size:22px;width:80px;">
+      </div>
+
+      <!-- Precio / Cantidad -->
+      <div class="form-row-2">
+        <div class="form-row">
+          <label class="form-label">Precio *</label>
+          <input class="form-input" id="f-price" type="text" placeholder="$4.99">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Cantidad</label>
+          <input class="form-input" id="f-qty" type="number" min="1" value="1">
+        </div>
+      </div>
+
+      <!-- Pasillo / Sección / Modular -->
+      <div class="form-row">
+        <label class="form-label">Ubicación en tienda</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <input class="form-input" id="f-pasillo" type="text" placeholder="Pasillo">
+          <input class="form-input" id="f-seccion" type="text" placeholder="Sección">
+          <input class="form-input" id="f-modular" type="text" placeholder="Modular">
+        </div>
+      </div>
+
+      <!-- Badge / UPC -->
+      <div class="form-row-2">
+        <div class="form-row">
+          <label class="form-label">Badge (letra)</label>
+          <input class="form-input" id="f-badge" type="text" placeholder="A" maxlength="2" style="width:70px;">
+        </div>
+        <div class="form-row">
+          <label class="form-label">UPC</label>
+          <input class="form-input" id="f-upc" type="text" placeholder="00000000000">
+        </div>
+      </div>
+
+      <!-- Perecible -->
+      <label class="check-row">
+        <input type="checkbox" id="f-perishable">
+        <span>Producto perecedero</span>
+      </label>
+
+      <!-- Botones -->
+      <div style="display:flex;gap:10px;">
+        <button class="save-btn" id="save-btn" onclick="saveProduct()" style="flex:1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Guardar producto
+        </button>
+        <button id="cancel-edit-btn" onclick="cancelEdit()"
+          style="display:none;padding:0 18px;border:1.5px solid #8e8e93;border-radius:12px;background:none;font-size:14px;color:#374151;cursor:pointer;font-family:inherit;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de productos existentes -->
+    <p class="admin-section-title">Productos en Firestore</p>
+    <div id="admin-prod-list">
+      <p style="text-align:center;color:#a0a0a8;font-size:14px;padding:20px 0;">Cargando…</p>
+    </div>
+  </div>
+</div>
+
+<!-- Loading & Toast -->
+<div class="loading-overlay" id="loading-overlay"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let products   = [];   // Array local sincronizado con Firestore
+let doneSet    = new Set();
 let currentIdx = 0;
-const doneSet = new Set();
+let editingId  = null; // ID de Firestore del producto en edición
+let unsubscribe = null;
+
+// ═══════════════════════════════════════════════════════
+//  INIT — espera a Firebase
+// ═══════════════════════════════════════════════════════
+window.addEventListener('firebase-ready', () => {
+  subscribeProducts();
+});
+
+// Verificar conexión Firebase
+setTimeout(() => {
+  if (!window._db) {
+    document.getElementById('rows-restante').innerHTML =
+      `<div style="text-align:center;padding:30px 20px;color:#ff3b30;font-size:14px;line-height:1.6;">
+        ⚠️ No se pudo conectar a Firebase.<br>Revisa la consola del navegador.
+      </div>`;
+  }
+}, 5000);
+
+// ═══════════════════════════════════════════════════════
+//  FIRESTORE — escucha en tiempo real
+// ═══════════════════════════════════════════════════════
+function subscribeProducts() {
+  const { collection, onSnapshot } = window._fb;
+  const db = window._db;
+  if (unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(collection(db, 'products'), snap => {
+    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderRestante();
+    renderCompleto();
+    renderAdminList();
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  CLOUDINARY WIDGET
+// ═══════════════════════════════════════════════════════
+function openCloudinaryWidget() {
+  const widget = cloudinary.createUploadWidget(
+    {
+      cloudName:   'ddphng6ww',
+      uploadPreset: 'productos_lista',   // crea este preset en Cloudinary Console (unsigned)
+      sources:      ['local', 'camera'],
+      multiple:     false,
+      cropping:     true,
+      croppingAspectRatio: 1,
+      maxFileSize:  5000000,
+      language:     'es',
+      text: {
+        es: {
+          or:            'O',
+          back:          'Atrás',
+          advanced:      'Avanzado',
+          close:         'Cerrar',
+          no_results:    'Sin resultados',
+          search_placeholder: 'Buscar archivos',
+          about_uw:      'Sobre el widget de carga',
+          menu:          { files: 'Mis archivos', camera: 'Cámara' },
+          selection_counter: { image: 'Imagen' },
+          actions:       { upload: 'Subir', clear_all: 'Limpiar todo', log_out: 'Cerrar sesión' },
+          notifications: { general_error: 'Ocurrió un error.', general_prompt: 'Listo para subir.' },
+        }
+      }
+    },
+    (error, result) => {
+      if (!error && result && result.event === 'success') {
+        const url = result.info.secure_url;
+        document.getElementById('cloudinary-url').value = url;
+        const prev = document.getElementById('img-preview');
+        prev.src = url;
+        prev.style.display = 'block';
+        document.getElementById('upload-placeholder').style.display = 'none';
+        showToast('Imagen subida ✓');
+      }
+    }
+  );
+  widget.open();
+}
+
+// ═══════════════════════════════════════════════════════
+//  SAVE / UPDATE PRODUCT
+// ═══════════════════════════════════════════════════════
+async function saveProduct() {
+  const name = document.getElementById('f-name').value.trim();
+  const price = document.getElementById('f-price').value.trim();
+  if (!name || !price) { showToast('Nombre y precio son obligatorios'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.querySelector('svg').style.display = 'none';
+
+  try {
+    const { addDoc, updateDoc, doc, collection } = window._fb;
+    const db = window._db;
+
+    // URL de Cloudinary (ya fue subida por el widget)
+    const cloudinaryUrl = document.getElementById('cloudinary-url').value;
+    let imageUrl = cloudinaryUrl || (editingId ? (products.find(p=>p.id===editingId)?.imageUrl || '') : '');
+
+    const data = {
+      name:       name,
+      emoji:      document.getElementById('f-emoji').value || '🛒',
+      price:      price,
+      qty:        parseInt(document.getElementById('f-qty').value) || 1,
+      pasillo:    document.getElementById('f-pasillo').value.trim() || '—',
+      seccion:    document.getElementById('f-seccion').value.trim() || '—',
+      modular:    document.getElementById('f-modular').value.trim() || '—',
+      badge:      document.getElementById('f-badge').value.trim().toUpperCase() || 'A',
+      upc:        document.getElementById('f-upc').value.trim() || '000000000000',
+      perishable: document.getElementById('f-perishable').checked,
+      imageUrl:   imageUrl,
+      updatedAt:  Date.now(),
+    };
+
+    if (editingId) {
+      await updateDoc(doc(db, 'products', editingId), data);
+      showToast('Producto actualizado ✓');
+    } else {
+      data.createdAt = Date.now();
+      await addDoc(collection(db, 'products'), data);
+      showToast('Producto creado ✓');
+    }
+
+    clearForm();
+  } catch(e) {
+    console.error(e);
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.querySelector('svg').style.display = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  EDIT PRODUCT
+// ═══════════════════════════════════════════════════════
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+
+  document.getElementById('f-name').value      = p.name || '';
+  document.getElementById('f-emoji').value     = p.emoji || '';
+  document.getElementById('f-price').value     = p.price || '';
+  document.getElementById('f-qty').value       = p.qty || 1;
+  document.getElementById('f-pasillo').value   = p.pasillo || '';
+  document.getElementById('f-seccion').value   = p.seccion || '';
+  document.getElementById('f-modular').value   = p.modular || '';
+  document.getElementById('f-badge').value     = p.badge || '';
+  document.getElementById('f-upc').value       = p.upc || '';
+  document.getElementById('f-perishable').checked = !!p.perishable;
+
+  // Preview imagen existente
+  if (p.imageUrl) {
+    const prev = document.getElementById('img-preview');
+    prev.src = p.imageUrl;
+    prev.style.display = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+  } else {
+    clearImgPreview();
+  }
+
+  document.getElementById('form-mode-title').textContent = 'Editar producto';
+  document.getElementById('cancel-edit-btn').style.display = '';
+  document.getElementById('save-btn').querySelector('svg').nextSibling.textContent && null;
+
+  // Scroll al formulario
+  document.querySelector('.admin-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  clearForm();
+}
+
+function clearForm() {
+  editingId = null;
+  ['f-name','f-emoji','f-price','f-pasillo','f-seccion','f-modular','f-badge','f-upc'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-qty').value = 1;
+  document.getElementById('f-perishable').checked = false;
+  document.getElementById('cloudinary-url').value = '';
+  clearImgPreview();
+  document.getElementById('form-mode-title').textContent = 'Nuevo producto';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+function clearImgPreview() {
+  const prev = document.getElementById('img-preview');
+  prev.src = ''; prev.style.display = 'none';
+  document.getElementById('upload-placeholder').style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  DELETE PRODUCT
+// ═══════════════════════════════════════════════════════
+async function deleteProduct(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  const { deleteDoc, doc } = window._fb;
+  const db = window._db;
+  setLoading(true);
+  try {
+    // Nota: la imagen en Cloudinary no se borra automáticamente
+    // (requeriría backend con API secret). Puedes borrarla manualmente
+    // desde cloudinary.com/console si lo necesitas.
+    await deleteDoc(doc(db, 'products', id));
+    showToast('Producto eliminado');
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — LISTA PRINCIPAL
+// ═══════════════════════════════════════════════════════
+function imgOrEmoji(p, size='card') {
+  if (p.imageUrl) {
+    return `<img src="${p.imageUrl}" alt="${p.name}" ${size==='large'?'style="width:160px;height:160px;object-fit:cover;border-radius:8px;"':''}>`;
+  }
+  return `<span class="prod-emoji" style="${size==='large'?'font-size:70px;':'font-size:52px;'}">${p.emoji || '🛒'}</span>`;
+}
 
 function rowHTML(p, idx, done=false) {
   const tag = p.perishable ? `<span class="tag-perecedero">Perecedero</span>` : '';
   return `
-  <div class="product-row${done?' done':''}" onclick="${done?'void(0)':'openDetail('+idx+')'}">
-    <div class="prod-img-box"><span class="prod-emoji">${p.emoji}</span></div>
+  <div class="product-row${done?' done':''}" onclick="${done?'void(0)':`openDetail(${idx})`}">
+    <div class="prod-img-box">${imgOrEmoji(p)}</div>
     <div class="prod-info">
       ${tag}
       <div class="prod-name">${p.name}</div>
@@ -468,6 +917,11 @@ function rowHTML(p, idx, done=false) {
 }
 
 function renderRestante() {
+  if (products.length === 0) {
+    document.getElementById('rows-restante').innerHTML =
+      '<p style="text-align:center;color:#a0a0a8;margin-top:52px;font-size:14px;">No hay productos. Agrégalos desde el panel Admin.</p>';
+    return;
+  }
   let html = '';
   products.forEach((p, i) => { html += rowHTML(p, i, doneSet.has(i)); });
   document.getElementById('rows-restante').innerHTML = html;
@@ -480,9 +934,47 @@ function renderCompleto() {
     return;
   }
   let html = '';
-  doneSet.forEach(i => { html += rowHTML(products[i], i, true); });
+  doneSet.forEach(i => { if(products[i]) html += rowHTML(products[i], i, true); });
   document.getElementById('rows-completo').innerHTML = html;
 }
+
+// ═══════════════════════════════════════════════════════
+//  RENDER — LISTA ADMIN
+// ═══════════════════════════════════════════════════════
+function renderAdminList() {
+  const container = document.getElementById('admin-prod-list');
+  if (products.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#a0a0a8;font-size:14px;padding:20px 0;">Sin productos todavía.</p>';
+    return;
+  }
+  container.innerHTML = products.map(p => `
+    <div class="admin-prod-card" style="margin-bottom:10px;">
+      <div class="admin-prod-thumb">
+        ${p.imageUrl
+          ? `<img src="${p.imageUrl}" alt="${p.name}">`
+          : `<span>${p.emoji || '🛒'}</span>`}
+      </div>
+      <div class="admin-prod-info">
+        <div class="admin-prod-name">${p.name}</div>
+        <div class="admin-prod-sub">${p.price} · Pasillo ${p.pasillo}</div>
+      </div>
+      <div class="admin-prod-actions">
+        <button class="btn-edit" onclick="editProduct('${p.id}')">✏️</button>
+        <button class="btn-del" onclick="deleteProduct('${p.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVEGACIÓN
+// ═══════════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showAdmin() { showScreen('screen-admin'); }
 
 function switchTab(tab) {
   document.getElementById('tab-restante').classList.toggle('active', tab==='restante');
@@ -495,29 +987,31 @@ function switchTab(tab) {
 function openDetail(idx) {
   currentIdx = idx;
   const p = products[idx];
-  document.getElementById('d-pasillo').textContent  = p.pasillo;
-  document.getElementById('d-seccion').textContent  = p.seccion;
-  document.getElementById('d-modular').textContent  = p.modular;
-  document.getElementById('d-badge').textContent    = p.badge;
-  document.getElementById('d-emoji').textContent    = p.emoji;
-  document.getElementById('d-qty').textContent      = p.qty + ' cantidad';
-  document.getElementById('d-name').textContent     = p.name;
-  document.getElementById('d-price').textContent    = p.price;
-  document.getElementById('d-upc').textContent      = p.upc;
+  if (!p) return;
+  document.getElementById('d-pasillo').textContent = p.pasillo;
+  document.getElementById('d-seccion').textContent = p.seccion;
+  document.getElementById('d-modular').textContent = p.modular;
+  document.getElementById('d-badge').textContent   = p.badge || 'A';
+  document.getElementById('d-qty').textContent     = p.qty + ' cantidad';
+  document.getElementById('d-name').textContent    = p.name;
+  document.getElementById('d-price').textContent   = p.price;
+  document.getElementById('d-upc').textContent     = p.upc;
+
+  // Imagen detalle
+  const wrap = document.getElementById('d-img-wrap');
+  wrap.innerHTML = p.imageUrl
+    ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:160px;height:160px;object-fit:cover;border-radius:8px;">`
+    : `<span style="font-size:70px;">${p.emoji || '🛒'}</span>`;
 
   const rem = products.length - doneSet.size;
   document.getElementById('d-remaining').textContent = rem + ' artículos restantes';
   document.getElementById('d-bar').style.width =
-    Math.max(5, Math.round(doneSet.size/products.length*100)) + '%';
+    Math.max(5, Math.round(doneSet.size / products.length * 100)) + '%';
 
-  document.getElementById('screen-list').classList.remove('active');
-  document.getElementById('screen-detail').classList.add('active');
+  showScreen('screen-detail');
 }
 
-function goBack() {
-  document.getElementById('screen-detail').classList.remove('active');
-  document.getElementById('screen-list').classList.add('active');
-}
+function goBack() { showScreen('screen-list'); }
 
 function markDone() {
   doneSet.add(currentIdx);
@@ -525,7 +1019,19 @@ function markDone() {
   goBack();
 }
 
-renderRestante();
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function setLoading(show) {
+  document.getElementById('loading-overlay').classList.toggle('show', show);
+}
 </script>
 </body>
 </html>
