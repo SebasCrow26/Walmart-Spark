@@ -899,7 +899,7 @@ async function saveProduct() {
       pasillo:    document.getElementById('f-pasillo').value.trim() || '—',
       seccion:    document.getElementById('f-seccion').value.trim() || '—',
       modular:    document.getElementById('f-modular').value.trim() || '—',
-      badge:      document.getElementById('f-badge').value.trim().toUpperCase() || 'A',
+      badge:      document.getElementById('f-badge').value.trim().toUpperCase() || '',
       upc:        document.getElementById('f-upc').value.trim() || '000000000000',
       perishable: document.getElementById('f-perishable').checked,
       imageUrl:   imageUrl,
@@ -1115,7 +1115,13 @@ function openDetail(idx) {
   document.getElementById('d-pasillo').textContent = p.pasillo;
   document.getElementById('d-seccion').textContent = p.seccion;
   document.getElementById('d-modular').textContent = p.modular;
-  document.getElementById('d-badge').textContent   = p.badge || 'A';
+  const badgeEl = document.getElementById('d-badge');
+  if (p.badge && p.badge.trim()) {
+    badgeEl.textContent = p.badge.trim();
+    badgeEl.style.display = 'flex';
+  } else {
+    badgeEl.style.display = 'none';
+  }
   document.getElementById('d-qty').textContent     = p.qty + ' cantidad';
   document.getElementById('d-name').textContent    = p.name;
   document.getElementById('d-price').textContent   = p.price;
