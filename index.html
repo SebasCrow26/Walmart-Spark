@@ -1359,8 +1359,15 @@ function handleScanResult(scannedUPC) {
     stopScanner();
     doneSet.add(currentIdx);
     renderRestante();
-    showScreen('screen-list');
-    showToast('✓ Artículo completado');
+    // Buscar siguiente ítem no completado
+    const next = products.findIndex((_, i) => i !== currentIdx && !doneSet.has(i));
+    if (next !== -1) {
+      currentIdx = next;
+      showDetail(next);
+    } else {
+      showScreen('screen-list');
+      showToast('✓ Artículo completado');
+    }
   }, 1950);
 }
 
