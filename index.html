@@ -1377,22 +1377,12 @@ function handleScanResult(scannedUPC) {
     doneSet.add(currentIdx);
     renderRestante();
 
-    // Parar stream de video
     if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
     const video = document.getElementById('scanner-video');
     if (video) video.srcObject = null;
 
-    // Ocultar pantalla del escáner directamente
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-
-    const next = products.findIndex((_, i) => i !== currentIdx && !doneSet.has(i));
-    if (next !== -1) {
-      currentIdx = next;
-      document.getElementById('screen-detail').classList.add('active');
-      showDetail(next);
-    } else {
-      document.getElementById('screen-list').classList.add('active');
-    }
+    document.getElementById('screen-list').classList.add('active');
   }, 700);
 }
 
