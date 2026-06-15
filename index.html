@@ -1360,22 +1360,17 @@ function handleScanResult(scannedUPC) {
   if (!scannerActive) return;
   scannerActive = false;
 
-  // Detener Quagga inmediatamente para que no siga disparando
-  try { if (window.Quagga) Quagga.stop(); } catch(e) {}
-  if (scannerRafId) { cancelAnimationFrame(scannerRafId); scannerRafId = null; }
-
   const p = products[currentIdx];
 
-  // Mostrar éxito inmediato
+  // Mostrar éxito
   document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
   document.getElementById('scan-success').style.display = 'flex';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
   }));
 
-  // Salir en 800ms
+  // Navegar a los 600ms — ANTES de parar la cámara
   setTimeout(() => {
-    stopScanner();
     doneSet.add(currentIdx);
     renderRestante();
     const next = products.findIndex((_, i) => i !== currentIdx && !doneSet.has(i));
@@ -1385,7 +1380,9 @@ function handleScanResult(scannedUPC) {
     } else {
       showScreen('screen-list');
     }
-  }, 800);
+    // Parar cámara después de navegar
+    setTimeout(() => stopScanner(), 300);
+  }, 600);
 }
 
 function closeScanner() { stopScanner(); showScreen('screen-detail'); }
