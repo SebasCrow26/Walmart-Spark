@@ -1321,12 +1321,11 @@ function startDetectionLoop(video) {
   Quagga.onDetected((result) => {
     if (!scannerActive) return;
     const code = result?.codeResult?.code;
-    const err  = result?.codeResult?.decodedCodes
-      ?.filter(c => c.error !== undefined)
-      ?.reduce((s, c) => s + c.error, 0) ?? 99;
-    if (!code || err > 0.25) return;
+    if (!code) return;
+
+    // Requerir el mismo código 2 veces seguidas
     if (code === lastCode) { codeCount++; } else { lastCode = code; codeCount = 1; }
-    if (codeCount >= 3) handleScanResult(code);
+    if (codeCount >= 2) handleScanResult(code);
   });
 
   // Dibujar cuadro verde alrededor del código detectado
