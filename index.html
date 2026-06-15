@@ -1299,6 +1299,9 @@ function startDetectionLoop(video) {
 
   // Fallback QuaggaJS — Safari / iPhone
   const container = document.getElementById('scanner-video').parentElement;
+  let lastCode = null;
+  let codeCount = 0;
+
   Quagga.init({
     inputStream: {
       type: 'LiveStream',
@@ -1318,7 +1321,28 @@ function startDetectionLoop(video) {
   Quagga.onDetected((result) => {
     if (!scannerActive) return;
     const code = result?.codeResult?.code;
-    if (code) handleScanResult(code);
+    const err  = result?.codeResult?.decodedCodes
+      ?.filter(c => c.error !== undefined)
+      ?.reduce((s, c) => s + c.error, 0) ?? 99;
+    if (!code || err > 0.25) return;
+    if (code === lastCode) { codeCount++; } else { lastCode = code; codeCount = 1; }
+    if (codeCount >= 3) handleScanResult(code);
+  });
+
+  // Dibujar cuadro verde alrededor del código detectado
+  Quagga.onProcessed((result) => {
+    const canvas = Quagga.canvas?.dom?.overlay;
+    const ctx    = Quagga.canvas?.ctx?.overlay;
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (result?.boxes) {
+      result.boxes.filter(b => b !== result.box).forEach(box => {
+        Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, ctx, { color: 'rgba(52,199,89,0.3)', lineWidth: 2 });
+      });
+    }
+    if (result?.box) {
+      Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, ctx, { color: '#34c759', lineWidth: 3 });
+    }
   });
 }
 
@@ -1338,37 +1362,27 @@ function handleScanResult(scannedUPC) {
   scannerActive = false;
 
   const p = products[currentIdx];
-  const expectedUPC  = p ? String(p.upc || '').replace(/\D/g,'') : '';
-  const scannedClean = scannedUPC.replace(/\D/g,'');
 
-  setTimeout(() => {
-    document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
-    document.getElementById('scan-success').style.display = 'flex';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
-    }));
-  }, 180);
+  // Mostrar éxito inmediato
+  document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
+  document.getElementById('scan-success').style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
+  }));
 
-  if (p && expectedUPC !== scannedClean && scannedClean.length > 0) {
-    const { updateDoc, doc } = window._fb;
-    const db = window._db;
-    if (db && p.id) updateDoc(doc(db, 'products', p.id), { upc: scannedUPC }).catch(() => {});
-  }
-
+  // Salir rápido — 800ms
   setTimeout(() => {
     stopScanner();
     doneSet.add(currentIdx);
     renderRestante();
-    // Buscar siguiente ítem no completado
     const next = products.findIndex((_, i) => i !== currentIdx && !doneSet.has(i));
     if (next !== -1) {
       currentIdx = next;
       showDetail(next);
     } else {
       showScreen('screen-list');
-      showToast('✓ Artículo completado');
     }
-  }, 1950);
+  }, 800);
 }
 
 function closeScanner() { stopScanner(); showScreen('screen-detail'); }
