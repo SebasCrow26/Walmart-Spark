@@ -1361,6 +1361,10 @@ function handleScanResult(scannedUPC) {
   if (!scannerActive) return;
   scannerActive = false;
 
+  // Detener Quagga inmediatamente para que no siga disparando
+  try { if (window.Quagga) Quagga.stop(); } catch(e) {}
+  if (scannerRafId) { cancelAnimationFrame(scannerRafId); scannerRafId = null; }
+
   const p = products[currentIdx];
 
   // Mostrar éxito inmediato
@@ -1370,7 +1374,7 @@ function handleScanResult(scannedUPC) {
     document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
   }));
 
-  // Salir rápido — 800ms
+  // Salir en 800ms
   setTimeout(() => {
     stopScanner();
     doneSet.add(currentIdx);
