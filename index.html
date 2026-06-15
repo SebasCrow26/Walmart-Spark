@@ -1369,20 +1369,31 @@ function handleScanResult(scannedUPC) {
     document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
   }));
 
-  // Navegar a los 600ms — ANTES de parar la cámara
+  // Parar Quagga ya
+  try { Quagga.stop(); } catch(e) {}
+
+  // Navegar a los 700ms forzando con display directo
   setTimeout(() => {
     doneSet.add(currentIdx);
     renderRestante();
+
+    // Parar stream de video
+    if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+    const video = document.getElementById('scanner-video');
+    if (video) video.srcObject = null;
+
+    // Ocultar pantalla del escáner directamente
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
     const next = products.findIndex((_, i) => i !== currentIdx && !doneSet.has(i));
     if (next !== -1) {
       currentIdx = next;
+      document.getElementById('screen-detail').classList.add('active');
       showDetail(next);
     } else {
-      showScreen('screen-list');
+      document.getElementById('screen-list').classList.add('active');
     }
-    // Parar cámara después de navegar
-    setTimeout(() => stopScanner(), 300);
-  }, 600);
+  }, 700);
 }
 
 function closeScanner() { stopScanner(); showScreen('screen-detail'); }
