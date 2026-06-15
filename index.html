@@ -706,6 +706,13 @@
       </svg>
     </div>
 
+    <!-- Botón Flash arriba a la derecha -->
+    <div id="flash-btn" onclick="toggleFlash()" style="position:absolute;top:16px;right:16px;z-index:30;width:38px;height:38px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1.5px solid rgba(255,255,255,0.3);">
+      <svg id="flash-icon" width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
+      </svg>
+    </div>
+
     <!-- Título arriba centro -->
     <div style="position:absolute;top:22px;left:0;right:0;text-align:center;z-index:5;pointer-events:none;">
       <span style="color:white;font-size:16px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.8);">Escanear artículo</span>
@@ -723,11 +730,69 @@
     </div>
   </div>
 
-  <!-- Bottom bar -->
-  <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(0,0,0,0.85);padding:14px 16px 36px;">
-    <button onclick="closeScanner()" style="width:100%;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);color:white;border-radius:14px;padding:15px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;">
-      Cancelar
-    </button>
+  <!-- Bottom bar del escáner -->
+  <div style="position:absolute;bottom:0;left:0;right:0;z-index:10;">
+    <!-- Card del producto actual -->
+    <div id="scanner-product-card" style="background:white;margin:0 12px 10px;border-radius:16px;padding:12px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,0.18);">
+      <div id="sc-img" style="width:56px;height:56px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#f2f2f7;display:flex;align-items:center;justify-content:center;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="sc-name" style="font-size:13px;font-weight:600;color:#1a1a1e;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span id="sc-price" style="font-size:13px;color:#555;"></span>
+          <span id="sc-qty" style="font-size:13px;color:#8e8e93;"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Botón ingresar manualmente -->
+    <div style="padding:0 16px 44px;background:rgba(0,0,0,0.7);">
+      <button onclick="openManualEntry()" style="width:100%;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.35);color:white;border-radius:50px;padding:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:0.5px;">
+        INGRESAR MANUALMENTE
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SCREEN 5 — INGRESO MANUAL / CANTIDAD
+═══════════════════════════════ -->
+<div class="screen" id="screen-manual">
+  <div class="header">
+    <div class="header-left">
+      <span class="back-btn" onclick="closeManual()">✕</span>
+      <span class="header-title">Ingreso Manual</span>
+    </div>
+  </div>
+  <div style="padding:20px 16px;flex:1;overflow-y:auto;">
+    <!-- Mini card del producto -->
+    <div style="display:flex;align-items:center;gap:12px;background:white;border-radius:14px;padding:14px;margin-bottom:24px;box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+      <div id="manual-img" style="width:52px;height:52px;flex-shrink:0;border-radius:8px;overflow:hidden;background:#f2f2f7;display:flex;align-items:center;justify-content:center;"></div>
+      <div style="flex:1;min-width:0;">
+        <div id="manual-name" style="font-size:14px;font-weight:600;color:#1a1a1e;line-height:1.3;"></div>
+        <div style="display:flex;gap:12px;margin-top:4px;">
+          <span id="manual-price" style="font-size:13px;color:#555;"></span>
+          <span id="manual-qty-label" style="font-size:13px;color:#555;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pregunta cantidad -->
+    <p style="font-size:16px;font-weight:500;color:#1a1a1e;margin-bottom:12px;">¿Cuántos encontraste?</p>
+    <div style="position:relative;margin-bottom:28px;">
+      <input id="manual-count" type="number" min="0" inputmode="numeric"
+        style="width:100%;padding:16px 100px 16px 16px;border:1.5px solid #e0e0e6;border-radius:12px;font-size:18px;font-weight:600;font-family:inherit;outline:none;box-sizing:border-box;color:#1a1a1e;"
+        placeholder="0">
+      <span id="manual-of" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:14px;color:#8e8e93;white-space:nowrap;"></span>
+    </div>
+
+    <!-- Botones CANCELAR / CONFIRMAR -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <button onclick="closeManual()" style="padding:16px;border-radius:50px;border:1.5px solid #c8c8cc;background:white;font-size:14px;font-weight:700;color:#555;font-family:inherit;cursor:pointer;letter-spacing:0.4px;">
+        CANCELAR
+      </button>
+      <button onclick="confirmManual()" style="padding:16px;border-radius:50px;border:none;background:#1a4fa0;color:white;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:0.4px;">
+        CONFIRMAR
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1162,7 +1227,74 @@ function markDone() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  ESCÁNER DE CÓDIGO DE BARRAS (Html5Qrcode)
+//  FLASH / LINTERNA
+// ═══════════════════════════════════════════════════════
+let flashOn = false;
+async function toggleFlash() {
+  if (!html5QrCode) return;
+  try {
+    flashOn = !flashOn;
+    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: flashOn }] });
+    document.getElementById('flash-icon').style.fill = flashOn ? '#FFD60A' : 'white';
+    document.getElementById('flash-btn').style.background = flashOn ? 'rgba(255,214,10,0.25)' : 'rgba(0,0,0,0.5)';
+  } catch(e) {
+    showToast('Flash no disponible en este dispositivo');
+    flashOn = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INGRESO MANUAL / PANTALLA DE CANTIDAD
+// ═══════════════════════════════════════════════════════
+function openManualEntry() {
+  const p = products[currentIdx];
+  if (!p) return;
+
+  // Rellenar card del producto
+  const imgEl = document.getElementById('manual-img');
+  imgEl.innerHTML = p.imageUrl
+    ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
+    : `<span style="font-size:28px;">${p.emoji || '🛒'}</span>`;
+  document.getElementById('manual-name').textContent  = p.name;
+  document.getElementById('manual-price').textContent = p.price ? `$${p.price}` : '';
+  document.getElementById('manual-qty-label').textContent = `cantidad ${p.qty || 1}`;
+  document.getElementById('manual-of').textContent   = `fuera de ${p.qty || 1}`;
+  document.getElementById('manual-count').value      = '';
+
+  stopScanner();
+  showScreen('screen-manual');
+  setTimeout(() => document.getElementById('manual-count').focus(), 300);
+}
+
+function closeManual() {
+  showScreen('screen-detail');
+}
+
+function confirmManual() {
+  const count = parseInt(document.getElementById('manual-count').value, 10);
+  const p = products[currentIdx];
+  const total = parseInt(p?.qty || 1, 10);
+
+  if (isNaN(count) || count < 0) {
+    showToast('Ingresa una cantidad válida');
+    return;
+  }
+
+  if (count >= total) {
+    // Cantidad completa → marcar como done
+    doneSet.add(currentIdx);
+    renderRestante();
+    showScreen('screen-list');
+    showToast('✓ Artículo completado');
+  } else if (count === 0) {
+    showScreen('screen-list');
+    showToast('Artículo omitido');
+  } else {
+    // Cantidad parcial
+    showScreen('screen-list');
+    showToast(`${count} de ${total} encontrados`);
+  }
+}
 // ═══════════════════════════════════════════════════════
 let html5QrCode = null;
 let scannerActive = false;
@@ -1179,6 +1311,17 @@ async function openScanner() {
     p ? `Escaneando: ${p.name}` : 'Centra el código de barras en el recuadro';
   ['c-tl','c-tr','c-bl','c-br'].forEach(id => document.getElementById(id).classList.remove('hit'));
   document.getElementById('scan-line').style.display = '';
+
+  // Rellenar card del producto abajo
+  if (p) {
+    const imgEl = document.getElementById('sc-img');
+    imgEl.innerHTML = p.imageUrl
+      ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="font-size:28px;">${p.emoji || '🛒'}</span>`;
+    document.getElementById('sc-name').textContent  = p.name;
+    document.getElementById('sc-price').textContent = p.price ? `$${p.price}` : '';
+    document.getElementById('sc-qty').textContent   = `cantidad ${p.qty || 1}`;
+  }
 
   try {
     html5QrCode = new Html5Qrcode('scanner-video-container');
@@ -1260,6 +1403,7 @@ function closeScanner() {
 
 function stopScanner() {
   scannerActive = false;
+  flashOn = false;
   if (html5QrCode) {
     html5QrCode.stop().catch(() => {});
     html5QrCode = null;
