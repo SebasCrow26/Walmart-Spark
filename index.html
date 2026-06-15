@@ -488,6 +488,11 @@
     </div>
   </div>
 
+  <!-- Mensaje flash — oculto por defecto, aparece al tocar Flash -->
+  <div id="flash-msg-bar" style="display:none;background:#1a4fa0;color:white;font-size:13px;padding:9px 16px;text-align:left;">
+    Busca la luz amarilla para encontrar el artículo.
+  </div>
+
   <div class="map-peek">
     <div class="map-grid">
       <div class="map-aisle" style="left:20px;top:10px;width:60px;height:60px;"></div>
@@ -513,9 +518,9 @@
       <div class="sheet-handle"></div>
       <div class="sheet-toprow">
         <span class="map-link">Mostrar mapa</span>
-        <div class="flash-pill">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1v3M8 12v3M1 8h3M12 8h3M3.05 3.05l2.12 2.12M10.83 10.83l2.12 2.12M12.95 3.05l-2.12 2.12M5.17 10.83l-2.12 2.12" stroke="#374151" stroke-width="1.7" stroke-linecap="round"/>
+        <div class="flash-pill" id="detail-flash-btn" onclick="toggleDetailFlash()" style="cursor:pointer;">
+          <svg id="detail-flash-icon" width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" fill="#374151"/>
           </svg>
           Flash
         </div>
@@ -680,19 +685,7 @@
     <video id="scanner-video" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;" playsinline muted autoplay></video>
     <canvas id="scanner-canvas" style="display:none;"></canvas>
 
-    <!-- Overlay oscuro lateral -->
-    <div style="position:absolute;inset:0;pointer-events:none;z-index:2;">
-      <!-- Arriba -->
-      <div style="position:absolute;top:0;left:0;right:0;height:calc(50% - 80px);background:rgba(0,0,0,0.6);"></div>
-      <!-- Abajo -->
-      <div style="position:absolute;bottom:0;left:0;right:0;height:calc(50% - 80px);background:rgba(0,0,0,0.6);"></div>
-      <!-- Izquierda -->
-      <div style="position:absolute;top:calc(50% - 80px);bottom:calc(50% - 80px);left:0;width:calc(50% - 140px);background:rgba(0,0,0,0.6);"></div>
-      <!-- Derecha -->
-      <div style="position:absolute;top:calc(50% - 80px);bottom:calc(50% - 80px);right:0;width:calc(50% - 140px);background:rgba(0,0,0,0.6);"></div>
-    </div>
-
-    <!-- Sin marco — igual que Spark -->
+    <!-- Sin overlays — cámara limpia igual que Spark -->
 
 
 
@@ -1182,6 +1175,12 @@ function openDetail(idx) {
   currentIdx = idx;
   const p = products[idx];
   if (!p) return;
+  detailFlashOn = false;
+  const bar = document.getElementById('flash-msg-bar');
+  if (bar) bar.style.display = 'none';
+  const btn = document.getElementById('detail-flash-btn');
+  if (btn) { btn.style.background = ''; btn.style.color = ''; }
+
   document.getElementById('d-pasillo').textContent = p.pasillo;
   document.getElementById('d-seccion').textContent = p.seccion;
   document.getElementById('d-modular').textContent = p.modular;
@@ -1218,6 +1217,20 @@ function markDone() {
   renderRestante();
   goBack();
 }
+
+
+// Flash pill — muestra/oculta el mensaje amarillo
+let detailFlashOn = false;
+function toggleDetailFlash() {
+  detailFlashOn = !detailFlashOn;
+  const bar = document.getElementById('flash-msg-bar');
+  const btn = document.getElementById('detail-flash-btn');
+  bar.style.display    = detailFlashOn ? 'block' : 'none';
+  btn.style.background = detailFlashOn ? '#e8f0fe' : '';
+  btn.style.color      = detailFlashOn ? '#1a4fa0' : '';
+}
+
+
 
 // ═══════════════════════════════════════════════════════
 //  ESCÁNER — getUserMedia nativo + BarcodeDetector
