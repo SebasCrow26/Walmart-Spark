@@ -9,7 +9,7 @@
      CLOUDINARY Upload Widget (imágenes, sin backend)
 ═══════════════════════════════════════════════════ -->
 <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 
 <!-- ══════════════════════════════════════════════════
      FIREBASE (solo Firestore — sin Storage)
@@ -676,8 +676,9 @@
 ═══════════════════════════════ -->
 <div class="screen" id="screen-scanner">
   <div id="scanner-body" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden;">
-    <!-- Contenedor de la cámara (Html5Qrcode lo maneja internamente) -->
-    <div id="scanner-video-container" style="width:100%;height:100%;position:absolute;inset:0;"></div>
+    <!-- Video nativo — sin librerías que agreguen cuadros -->
+    <video id="scanner-video" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;z-index:1;" playsinline muted autoplay></video>
+    <canvas id="scanner-canvas" style="display:none;"></canvas>
 
     <!-- Overlay oscuro lateral -->
     <div style="position:absolute;inset:0;pointer-events:none;z-index:2;">
@@ -793,29 +794,13 @@
 </div>
 
 <style>
-/* Ocultar UI por defecto de Html5Qrcode — incluyendo el cuadro gris */
-#scanner-video-container {
-  position: absolute !important; inset: 0 !important;
-  z-index: 1;
-}
-#scanner-video-container video {
+/* Video nativo — pantalla completa sin cuadros */
+#scanner-video {
   width: 100% !important; height: 100% !important;
   object-fit: cover !important;
   position: absolute !important; inset: 0 !important;
+  z-index: 1;
 }
-#scanner-video-container > div,
-#scanner-video-container canvas,
-#scanner-video-container img,
-#scanner-video-container span,
-#scanner-video-container select,
-#scanner-video-container button,
-#html5-qrcode-button-camera-permission,
-#html5-qrcode-anchor-scan-type-change,
-#html5qr-code-full-region__scan_region,
-#html5qr-code-full-region__dashboard { 
-  display: none !important; 
-}
-#scanner-video-container > div:first-child { display: block !important; position: absolute !important; inset: 0 !important; }
 
 /* Esquinas del marco */
 .corner {
@@ -1235,25 +1220,128 @@ function markDone() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  FLASH / LINTERNA
+//  ESCÁNER — getUserMedia nativo + BarcodeDetector
 // ═══════════════════════════════════════════════════════
-let flashOn = false;
-async function toggleFlash() {
-  if (!html5QrCode) return;
+let scannerStream  = null;
+let scannerActive  = false;
+let scannerRafId   = null;
+let flashOn        = false;
+let flashTrack     = null;
+
+async function openScanner() {
+  showScreen('screen-scanner');
+  scannerActive = true;
+  flashOn = false;
+
+  document.getElementById('scan-success').style.display = 'none';
+  document.getElementById('scan-check-wrap').style.transform = 'scale(0)';
+
+  const p = products[currentIdx];
+  if (p) {
+    const imgEl = document.getElementById('sc-img');
+    imgEl.innerHTML = p.imageUrl
+      ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
+      : `<span style="font-size:28px;">${p.emoji || '🛒'}</span>`;
+    document.getElementById('sc-name').textContent  = p.name;
+    document.getElementById('sc-price').textContent = p.price ? `$${p.price.toString().replace(/^\$+/,'')}` : '';
+    document.getElementById('sc-qty').textContent   = `cantidad ${p.qty || 1}`;
+  }
+
   try {
-    flashOn = !flashOn;
-    await html5QrCode.applyVideoConstraints({ advanced: [{ torch: flashOn }] });
-    document.getElementById('flash-icon').style.fill = flashOn ? '#FFD60A' : 'white';
-    document.getElementById('flash-btn').style.background = flashOn ? 'rgba(255,214,10,0.25)' : 'rgba(0,0,0,0.5)';
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('scanner-video');
+    video.srcObject = scannerStream;
+    await video.play();
+    flashTrack = scannerStream.getVideoTracks()[0];
+    startDetectionLoop(video);
   } catch(e) {
-    showToast('Flash no disponible en este dispositivo');
-    flashOn = false;
+    console.error('Scanner error:', e);
+    showToast('No se pudo acceder a la cámara. Verifica los permisos.');
+    showScreen('screen-detail');
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  INGRESO MANUAL / PANTALLA DE CANTIDAD
-// ═══════════════════════════════════════════════════════
+function startDetectionLoop(video) {
+  const canvas = document.getElementById('scanner-canvas');
+  const ctx    = canvas.getContext('2d', { willReadFrequently: true });
+  const detector = window.BarcodeDetector
+    ? new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','itf','qr_code'] })
+    : null;
+
+  async function tick() {
+    if (!scannerActive) return;
+    if (video.readyState < 2) { scannerRafId = requestAnimationFrame(tick); return; }
+
+    if (detector) {
+      try {
+        const results = await detector.detect(video);
+        if (results.length > 0 && scannerActive) { handleScanResult(results[0].rawValue); return; }
+      } catch(e) {}
+    } else {
+      // Fallback canvas para navegadores sin BarcodeDetector
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+    }
+    scannerRafId = requestAnimationFrame(tick);
+  }
+  scannerRafId = requestAnimationFrame(tick);
+}
+
+async function toggleFlash() {
+  if (!flashTrack) return;
+  try {
+    flashOn = !flashOn;
+    await flashTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+    document.getElementById('flash-icon').style.fill = flashOn ? '#FFD60A' : 'white';
+    document.getElementById('flash-btn').style.background = flashOn ? 'rgba(255,214,10,0.25)' : 'rgba(0,0,0,0.5)';
+  } catch(e) { showToast('Flash no disponible'); flashOn = false; }
+}
+
+function handleScanResult(scannedUPC) {
+  if (!scannerActive) return;
+  scannerActive = false;
+
+  const p = products[currentIdx];
+  const expectedUPC  = p ? String(p.upc || '').replace(/\D/g,'') : '';
+  const scannedClean = scannedUPC.replace(/\D/g,'');
+
+  setTimeout(() => {
+    document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
+    document.getElementById('scan-success').style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
+    }));
+  }, 180);
+
+  if (p && expectedUPC !== scannedClean && scannedClean.length > 0) {
+    const { updateDoc, doc } = window._fb;
+    const db = window._db;
+    if (db && p.id) updateDoc(doc(db, 'products', p.id), { upc: scannedUPC }).catch(() => {});
+  }
+
+  setTimeout(() => {
+    stopScanner();
+    doneSet.add(currentIdx);
+    renderRestante();
+    showScreen('screen-list');
+    showToast('✓ Artículo completado');
+  }, 1950);
+}
+
+function closeScanner() { stopScanner(); showScreen('screen-detail'); }
+
+function stopScanner() {
+  scannerActive = false;
+  if (scannerRafId) { cancelAnimationFrame(scannerRafId); scannerRafId = null; }
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  const video = document.getElementById('scanner-video');
+  if (video) video.srcObject = null;
+  flashOn = false; flashTrack = null;
+}
+
 function openManualEntry() {
   const p = products[currentIdx];
   if (!p) return;
@@ -1303,116 +1391,6 @@ function confirmManual() {
     showToast(`${count} de ${total} encontrados`);
   }
 }
-// ═══════════════════════════════════════════════════════
-let html5QrCode = null;
-let scannerActive = false;
-
-async function openScanner() {
-  showScreen('screen-scanner');
-  scannerActive = true;
-
-  // Resetear estado visual
-  document.getElementById('scan-success').style.display = 'none';
-  document.getElementById('scan-check-wrap').style.transform = 'scale(0)';
-  const p = products[currentIdx];
-  ['c-tl','c-tr','c-bl','c-br'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('hit'); });
-  const sl = document.getElementById('scan-line'); if(sl) sl.style.display = '';
-
-  // Rellenar card del producto abajo
-  if (p) {
-    const imgEl = document.getElementById('sc-img');
-    imgEl.innerHTML = p.imageUrl
-      ? `<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover;">`
-      : `<span style="font-size:28px;">${p.emoji || '🛒'}</span>`;
-    document.getElementById('sc-name').textContent  = p.name;
-    document.getElementById('sc-price').textContent = p.price ? `$${p.price.toString().replace(/^\$+/, '')}` : '';
-    document.getElementById('sc-qty').textContent   = `cantidad ${p.qty || 1}`;
-  }
-
-  try {
-    html5QrCode = new Html5Qrcode('scanner-video-container');
-
-    const config = {
-      fps: 15,
-      aspectRatio: window.innerHeight / window.innerWidth,
-      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-      ]
-    };
-
-    await html5QrCode.start(
-      { facingMode: 'environment' },
-      config,
-      (decodedText) => {
-        if (!scannerActive) return;
-        handleScanResult(decodedText);
-      },
-      () => {} // errores de "no detectado aún" — ignorar
-    );
-  } catch(e) {
-    console.error('Scanner error:', e);
-    showToast('No se pudo acceder a la cámara. Verifica los permisos.');
-    showScreen('screen-detail');
-  }
-}
-
-function handleScanResult(scannedUPC) {
-  if (!scannerActive) return;
-  scannerActive = false;
-
-  const p = products[currentIdx];
-  const expectedUPC = p ? String(p.upc || '').replace(/\D/g, '') : '';
-  const scannedClean = scannedUPC.replace(/\D/g, '');
-
-  // Sin marco — igual que Spark
-
-  // Mostrar overlay de éxito con animación
-  setTimeout(() => {
-    const successEl = document.getElementById('scan-success');
-    document.getElementById('scan-success-name').textContent = p ? p.name : 'Artículo escaneado';
-    successEl.style.display = 'flex';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.getElementById('scan-check-wrap').style.transform = 'scale(1)';
-    }));
-  }, 180);
-
-  // Actualizar UPC si cambió
-  if (p && expectedUPC !== scannedClean && scannedClean.length > 0) {
-    const { updateDoc, doc } = window._fb;
-    const db = window._db;
-    if (db && p.id) updateDoc(doc(db, 'products', p.id), { upc: scannedUPC }).catch(() => {});
-  }
-
-  // Marcar completo y volver
-  setTimeout(() => {
-    stopScanner();
-    doneSet.add(currentIdx);
-    renderRestante();
-    showScreen('screen-list');
-    showToast('✓ Artículo completado');
-  }, 1950);
-}
-
-function closeScanner() {
-  stopScanner();
-  showScreen('screen-detail');
-}
-
-function stopScanner() {
-  scannerActive = false;
-  flashOn = false;
-  if (html5QrCode) {
-    html5QrCode.stop().catch(() => {});
-    html5QrCode = null;
-  }
-}
-
 // ═══════════════════════════════════════════════════════
 //  UTILS
 // ═══════════════════════════════════════════════════════
